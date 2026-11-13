@@ -23,7 +23,8 @@ $$;
 grant usage on schema public to anon, authenticated, service_role;
 grant all on all tables in schema public to service_role;
 grant select, insert, update, delete on all tables in schema public to authenticated;
-revoke all on public._migrations from authenticated;
+-- La tabla de control de migraciones solo existe en tu Mac (en Supabase se usa app_auth.migrations)
+do $$ begin if to_regclass('public._migrations') is not null then execute 'revoke all on public._migrations from authenticated'; end if; end $$;
 -- pin_hash nunca sale al cliente: permisos por columna en memberships
 revoke select on public.memberships from authenticated;
 grant select (id, business_id, user_id, role, display_name, active, created_at, updated_at) on public.memberships to authenticated;

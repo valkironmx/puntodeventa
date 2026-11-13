@@ -9,12 +9,32 @@ import fs from 'node:fs'
 import path from 'node:path'
 import postgres from 'postgres'
 
-const url = process.env.DATABASE_URL_DIRECT
-if (!url) { console.error('Falta DATABASE_URL_DIRECT en .env.supabase'); process.exit(1) }
-if (/127\.0\.0\.1|localhost/.test(url)) { console.error('DATABASE_URL_DIRECT apunta a tu Mac; debe ser la base de Supabase'); process.exit(1) }
+const direct = process.env.DATABASE_URL_DIRECT
+if (!direct) { console.error('Falta DATABASE_URL_DIRECT en .env.supabase'); process.exit(1) }
+if (/127\.0\.0\.1|localhost/.test(direct)) { console.error('DATABASE_URL_DIRECT apunta a tu Mac; debe ser la base de Supabase'); process.exit(1) }
 const args = new Set(process.argv.slice(2))
 const root = process.cwd()
-const sql = postgres(url, { max: 1, ssl: 'require', prepare: false, onnotice: (n) => console.log('  ·', n.message) })
+const opts = { max: 1, ssl: 'require', prepare: false, connect_timeout: 15, onnotice: (n) => console.log('  ·', n.message) }
+
+// La conexión directa de Supabase (db.<ref>.supabase.co) solo existe por IPv6. Si la red no la alcanza,
+// se usa el pooler en modo sesión (IPv4), con el mismo usuario y contraseña: postgres.<ref>@aws-X-<región>.pooler.supabase.com:5432
+async function connect() {
+  const candidates = [direct]
+  const m = /^postgres(?:ql)?:\/\/postgres:(.+)@db\.([a-z0-9]+)\.supabase\.co:5432\/(\w+)$/.exec(direct)
+  if (m) {
+    const [, raw, ref, dbname] = m
+    const pass = encodeURIComponent(decodeURIComponent(raw.trim()))   // ignora espacios pegados por error
+    const regions = ['us-east-1', 'us-east-2', 'us-west-1', 'us-west-2', 'ca-central-1', 'sa-east-1', 'eu-west-1', 'eu-west-2', 'eu-central-1', 'ap-southeast-1']
+    for (const pre of ['aws-1', 'aws-0']) for (const r of regions) candidates.push(`postgresql://postgres.${ref}:${pass}@${pre}-${r}.pooler.supabase.com:5432/${dbname}`)
+  }
+  for (const u of candidates) {
+    const sql = postgres(u, opts)
+    try { await sql`select 1`; if (u !== direct) console.log('Conexión por el pooler de Supabase:', new URL(u).host); return sql }
+    catch (e) { await sql.end({ timeout: 1 }).catch(() => {}); if (u === direct) console.log('Conexión directa no disponible desde esta red; probando el pooler…') }
+  }
+  throw new Error('No se pudo conectar a la base de Supabase. Revisa la contraseña en DATABASE_URL_DIRECT.')
+}
+const sql = await connect()
 
 try {
   const [{ host }] = await sql`select inet_server_addr()::text as host`
