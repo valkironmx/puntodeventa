@@ -3,7 +3,7 @@
 Destinos de este proyecto:
 - **GitHub:** https://github.com/valkironmx/puntodeventa
 - **Supabase:** https://arznbsatmhwlhntqxkbt.supabase.co
-- **Vercel:** por definir
+- **Vercel:** equipo valkirion web apps · proyecto puntodeventa · https://ventasvalkirion.vercel.app
 
 ## 1. Supabase (base de datos y fotos)
 1. Llena `.env.supabase` (ya existe, no se sube a GitHub):
