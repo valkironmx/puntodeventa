@@ -13,13 +13,15 @@ const BANNER = { food: 'cafebanner', retail: 'tenis', service: 'barber4' }
 const HERO = { food: 'cafebanner', retail: 'linterna', service: 'barber4' }
 const keyFor = (name) => (BY_NAME.find(([k]) => name.toLowerCase().includes(k)) ?? [])[1]
 
-export async function attachDemoPhotos(sql, root, onlyBusinessId = null) {
+// upload(rel, archivo): por defecto copia a la carpeta storage/ de tu Mac; en la nube sube a Supabase Storage.
+export async function attachDemoPhotos(sql, root, onlyBusinessId = null, upload = null) {
   const src = path.join(root, 'supabase', 'demo-photos')
   if (!fs.existsSync(src)) return 0
-  const put = (bucket, businessId, key) => {
+  const put = async (bucket, businessId, key) => {
     const from = path.join(src, `${key}.jpg`)
     if (!fs.existsSync(from)) return null
     const rel = path.posix.join(bucket, businessId, `demo-${key}.jpg`)
+    if (upload) { await upload(rel, from); return rel }
     const abs = path.join(root, 'storage', rel)
     fs.mkdirSync(path.dirname(abs), { recursive: true })
     if (!fs.existsSync(abs)) fs.copyFileSync(from, abs)
@@ -32,16 +34,16 @@ export async function attachDemoPhotos(sql, root, onlyBusinessId = null) {
       and not exists (select 1 from public.product_images i where i.product_id = p.id)`
     for (const p of products) {
       const key = keyFor(p.name)
-      const rel = key && put('product-images', b.id, key)
+      const rel = key && (await put('product-images', b.id, key))
       if (rel) { await sql`insert into public.product_images (business_id, product_id, path, position) values (${b.id}, ${p.id}, ${rel}, 0)`; n++ }
     }
     const promos = await sql`select pr.id, p.name from public.promotions pr left join public.products p on p.id = pr.product_id where pr.business_id = ${b.id} and pr.image_path is null`
     for (const pr of promos) {
-      const rel = put('business-assets', b.id, (pr.name && keyFor(pr.name)) || BANNER[b.mode])
+      const rel = await put('business-assets', b.id, (pr.name && keyFor(pr.name)) || BANNER[b.mode])
       if (rel) { await sql`update public.promotions set image_path = ${rel} where id = ${pr.id}`; n++ }
     }
     if (!b.hero_path) {
-      const rel = put('business-assets', b.id, HERO[b.mode])
+      const rel = await put('business-assets', b.id, HERO[b.mode])
       if (rel) { await sql`update public.businesses set hero_path = ${rel} where id = ${b.id}`; n++ }
     }
   }

@@ -66,7 +66,20 @@ try {
   if (args.has('--demo')) {
     const [{ n }] = await sql`select count(*)::int n from public.businesses`
     if (n > 0) console.log('Ya hay negocios en la base: no se cargan los de demostración.')
-    else { await sql.unsafe(fs.readFileSync(path.join(root, 'supabase/seed.sql'), 'utf8')); console.log('Negocios de demostración cargados (contraseña en CREDENCIALES-LOCAL.md).') }
+    else {
+      await sql.unsafe(fs.readFileSync(path.join(root, 'supabase/seed.sql'), 'utf8'))
+      console.log('Negocios de demostración cargados (contraseña en CREDENCIALES-LOCAL.md).')
+      const url = process.env.SUPABASE_URL?.trim().replace(/\/$/, ''), key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
+      if (url && key) {
+        const { attachDemoPhotos } = await import('./demo-photos.mjs')
+        const upload = async (rel, file) => {
+          const r = await fetch(`${url}/storage/v1/object/${rel}`, { method: 'POST', body: fs.readFileSync(file),
+            headers: { authorization: `Bearer ${key}`, apikey: key, 'content-type': 'image/jpeg', 'x-upsert': 'true', 'cache-control': '31536000' } })
+          if (!r.ok) throw new Error(`No se pudo subir ${rel}: ${r.status} ${await r.text()}`)
+        }
+        console.log('Fotos demo subidas a Supabase Storage:', await attachDemoPhotos(sql, root, null, upload))
+      }
+    }
   }
 
   if (args.has('--push-webhook')) {
