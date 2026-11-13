@@ -1,0 +1,30 @@
+node_modules
+.next
+.pgdata
+storage
+# Variables y secretos (solo se suben los ejemplos)
+.env
+.env.*
+!.env.example
+!.env.supabase.example
+*.tsbuildinfo
+next-env.d.ts
+.next-build
+
+# App Android: compilados y firma
+android/app/build
+dist-android
+
+# App del teléfono (generada)
+mobile/www
+mobile/.build
+
+# Firma de la app Android (respaldar aparte, nunca subir)
+android/release.jks
+android/keystore.properties
+*.jks
+*.keystore
+
+# Sistema
+.DS_Store
+.vercel

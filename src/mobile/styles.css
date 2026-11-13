@@ -1,0 +1,21 @@
+@import "@fontsource-variable/plus-jakarta-sans";
+@import "../../mobile/.build/app.css";
+
+/* Solo en la app del teléfono */
+.m-splash{min-height:100vh;display:grid;place-items:center;background:#1F8A6B;color:#fff}
+.m-login{min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:max(24px,env(safe-area-inset-top)) 18px max(24px,env(safe-area-inset-bottom));background:var(--bg)}
+.m-login-card{width:min(100%,400px);background:#fff;border-radius:24px;padding:26px 22px;box-shadow:0 20px 50px -24px rgba(0,0,0,.25)}
+.m-login-card h1{font-size:24px;margin:14px 0 6px}
+.m-login-card p{margin:0 0 18px;font-size:14px;line-height:1.45}
+.m-login-card .err{margin-bottom:12px}
+.m-logo{width:58px;height:58px;border-radius:16px;background:#1F8A6B;color:#fff;display:grid;place-items:center}
+.m-link{display:block;margin:14px auto 0;border:0;background:none;color:var(--g);font-weight:700;font-size:13.5px;cursor:pointer}
+.m-strip{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;border:0;font:inherit;font-size:12.5px;font-weight:700;padding:calc(6px + env(safe-area-inset-top)) 12px 6px;background:var(--g);color:#fff;cursor:pointer}
+.m-strip.off{background:#57504A}
+.m-strip.bad{background:#C53030}
+.m-strip+.appbar,.m-strip~.appbar{padding-top:12px}
+.m-strip{position:relative!important;inset:auto!important;transform:none!important;flex:none;border-radius:0!important;box-shadow:none!important;margin:0!important;height:auto!important}
+/* Menú lateral compacto en el teléfono */
+.m-dfoot{display:flex;gap:6px}
+.m-dfoot .ditem{flex:1;justify-content:center;padding:10px 8px}
+.drawer .ditem{padding-top:11px;padding-bottom:11px}

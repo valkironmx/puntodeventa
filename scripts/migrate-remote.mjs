@@ -1,0 +1,64 @@
+// Crea / actualiza la base de datos en Supabase con las mismas migraciones que usas en tu Mac.
+// Lee DATABASE_URL_DIRECT (conexión directa, puerto 5432) del archivo .env.supabase (no se sube a GitHub).
+//
+//   node --env-file=.env.supabase scripts/migrate-remote.mjs                 → aplica migraciones pendientes
+//   node --env-file=.env.supabase scripts/migrate-remote.mjs --super          → además crea el Super Admin (SUPER_ADMIN_EMAIL / SUPER_ADMIN_PASSWORD)
+//   node --env-file=.env.supabase scripts/migrate-remote.mjs --demo           → además carga los negocios de demostración
+//   node --env-file=.env.supabase scripts/migrate-remote.mjs --push-webhook   → guarda la dirección del aviso push (APP_URL + PUSH_WEBHOOK_SECRET)
+import fs from 'node:fs'
+import path from 'node:path'
+import postgres from 'postgres'
+
+const url = process.env.DATABASE_URL_DIRECT
+if (!url) { console.error('Falta DATABASE_URL_DIRECT en .env.supabase'); process.exit(1) }
+if (/127\.0\.0\.1|localhost/.test(url)) { console.error('DATABASE_URL_DIRECT apunta a tu Mac; debe ser la base de Supabase'); process.exit(1) }
+const args = new Set(process.argv.slice(2))
+const root = process.cwd()
+const sql = postgres(url, { max: 1, ssl: 'require', prepare: false, onnotice: (n) => console.log('  ·', n.message) })
+
+try {
+  const [{ host }] = await sql`select inet_server_addr()::text as host`
+  console.log(`Conectado a la base de Supabase (${host ?? 'remoto'})`)
+  await sql.unsafe('create schema if not exists app_auth')
+  await sql.unsafe('create table if not exists app_auth.migrations (name text primary key, applied_at timestamptz default now())')
+  const done = new Set((await sql`select name from app_auth.migrations`).map((r) => r.name))
+  const files = fs.readdirSync(path.join(root, 'supabase/migrations')).filter((f) => f.endsWith('.sql')).sort()
+  for (const f of files) {
+    if (done.has(f)) continue
+    console.log('migración:', f)
+    await sql.begin(async (tx) => {
+      await tx.unsafe(fs.readFileSync(path.join(root, 'supabase/migrations', f), 'utf8'))
+      await tx`insert into app_auth.migrations (name) values (${f})`
+    })
+  }
+  console.log('Migraciones al día.')
+
+  if (args.has('--super')) {
+    const email = process.env.SUPER_ADMIN_EMAIL?.toLowerCase().trim(), pass = process.env.SUPER_ADMIN_PASSWORD
+    if (!email || !pass || pass.length < 10) throw new Error('Define SUPER_ADMIN_EMAIL y SUPER_ADMIN_PASSWORD (mínimo 10 caracteres) en .env.supabase')
+    let [u] = await sql`select id from auth.users where email = ${email}`
+    if (!u) [u] = await sql`select app_auth.create_user(${email}, ${pass}) as id`
+    else await sql`update auth.users set encrypted_password = extensions.crypt(${pass}, extensions.gen_salt('bf')), updated_at = now() where id = ${u.id}`
+    await sql`insert into public.platform_admins (user_id) values (${u.id}) on conflict do nothing`
+    console.log(`Super Admin listo: ${email} (borra SUPER_ADMIN_PASSWORD de .env.supabase cuando entres)`)
+  }
+
+  if (args.has('--demo')) {
+    const [{ n }] = await sql`select count(*)::int n from public.businesses`
+    if (n > 0) console.log('Ya hay negocios en la base: no se cargan los de demostración.')
+    else { await sql.unsafe(fs.readFileSync(path.join(root, 'supabase/seed.sql'), 'utf8')); console.log('Negocios de demostración cargados (contraseña en CREDENCIALES-LOCAL.md).') }
+  }
+
+  if (args.has('--push-webhook')) {
+    const app = process.env.APP_URL?.replace(/\/$/, ''), secret = process.env.PUSH_WEBHOOK_SECRET
+    if (!app?.startsWith('https://') || !secret) throw new Error('Define APP_URL (https://…) y PUSH_WEBHOOK_SECRET en .env.supabase')
+    await sql`insert into public.app_settings (key, value) values ('push_webhook_url', ${`${app}/api/push/webhook`}), ('push_webhook_secret', ${secret})
+      on conflict (key) do update set value = excluded.value, updated_at = now()`
+    console.log('Avisos push conectados a', `${app}/api/push/webhook`)
+  }
+} catch (e) {
+  console.error('Error:', e.message)
+  process.exitCode = 1
+} finally {
+  await sql.end()
+}
