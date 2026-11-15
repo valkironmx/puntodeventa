@@ -19,3 +19,20 @@
 .m-dfoot{display:flex;gap:6px}
 .m-dfoot .ditem{flex:1;justify-content:center;padding:10px 8px}
 .drawer .ditem{padding-top:11px;padding-bottom:11px}
+.m-login-card h1{font-size:26px;letter-spacing:-.02em;font-weight:800}
+.m-logo{background:var(--g)}
+.m-pass{position:relative}
+.m-pass .inp{padding-right:48px}
+.m-pass button{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:38px;height:38px;border:0;border-radius:12px;background:none;color:var(--mut);display:grid;place-items:center;cursor:pointer}
+.m-or{display:flex;align-items:center;gap:10px;margin:20px 0 12px;color:var(--mut);font-size:12.5px;font-weight:600}
+.m-or::before,.m-or::after{content:'';flex:1;height:1px;background:var(--line)}
+.m-signup{width:100%}
+.m-sheet-bg{position:fixed;inset:0;background:rgba(15,25,20,.42);display:flex;align-items:flex-end;justify-content:center;z-index:50;animation:mfade .18s}
+.m-sheet{width:min(100%,460px);background:#fff;border-radius:28px 28px 0 0;padding:26px 22px max(22px,env(safe-area-inset-bottom));text-align:center;animation:mup .22s cubic-bezier(.2,.8,.2,1)}
+.m-sheet b{display:block;font-size:20px;margin:14px 0 6px}
+.m-sheet p{margin:0 auto 14px;color:var(--mut);font-size:14px;line-height:1.45;max-width:300px}
+.m-sheet .btn{display:flex;width:100%;justify-content:center;opacity:.45;pointer-events:none}
+.m-sheet-ic{width:58px;height:58px;margin:0 auto;border-radius:18px;background:var(--g2);color:var(--g);display:grid;place-items:center}
+.m-soon{display:inline-block;margin-bottom:16px;padding:5px 12px;border-radius:99px;background:#FFF3D6;color:#A26700;font-size:12px;font-weight:800}
+@keyframes mup{from{transform:translateY(100%)}to{transform:none}}
+@keyframes mfade{from{opacity:0}to{opacity:1}}

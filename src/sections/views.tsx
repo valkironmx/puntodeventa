@@ -34,57 +34,44 @@ import type * as S from '@/lib/sections'
 type P<F extends (...a: never[]) => unknown> = NonNullable<Awaited<ReturnType<F>>>
 
 export function HomeView(p: P<typeof S.loadHome>) {
-  const c = (href: string, icon: string, label: string, badge?: number) => (
-    <Link href={href} className="pcat" key={href}><span><Icon name={icon} size={24} />{badge ? <i>{badge}</i> : null}</span>{label}</Link>
-  )
-  const q = (href: string, icon: string, label: string, badge?: number) => (
-    <Link href={href} className="qbtn big" key={href}>
-      <span className="qi"><Icon name={icon} size={22} /></span>
-      <span>{label}{badge ? <span className="cnt" style={{ marginLeft: 8 }}>{badge}</span> : null}</span>
+  const big = (href: string, icon: string, label: string, tone: string) => (
+    <Link href={href} className={`hm-big ${tone}`} key={href}>
+      <span className="hm-ic"><Icon name={icon} size={26} /></span>
+      <b>{label}</b>
     </Link>
+  )
+  const sm = (href: string, icon: string, label: string) => (
+    <Link href={href} className="hm-sm" key={href}><span><Icon name={icon} size={20} /></span>{label}</Link>
   )
   return (
     <>
       <AppBar right={<Link href={`/${p.slug}`} target="_blank" className="ibtn" aria-label="Ver mi página pública"><Icon name="eye" /></Link>}>
         <div className="abiz">
           <div className="logo sm" style={p.logo ? { background: `#fff url(${p.logo}) center/cover` } : undefined}>{p.logo ? '' : initials(p.name)}</div>
-          <div><b>{p.name}</b><small>{p.domain}/{p.slug}</small></div>
+          <div><b>{p.name}</b><small>Hola, {p.userName}</small></div>
         </div>
       </AppBar>
       <div className="scroll pad">
-        <div className="greet"><small>Hola, {p.userName}</small><b>¿Qué quieres hacer hoy?</b></div>
-        {!p.isSuper ? (
-          <Link href="/app/pos" className={`promo home-hero ${p.hero ? 'has-img' : ''}`}>
-            {p.hero ? <img src={p.hero} alt="" /> : null}
-            <div className="promo-t">
-              <em>Punto de venta</em>
-              <b>Cobra en segundos</b>
-              <p>Registra la venta, el pago y entrega el ticket.</p>
-              <span className="promo-btn">Nueva venta <span><Icon name="chevR" size={13} stroke={3} /></span></span>
-            </div>
-          </Link>
-        ) : null}
-        <div className="pcats">
-          {c('/app/pedidos', 'bag', 'Pedidos', p.orders)}
-          {c('/app/catalogo', 'grid', p.catalogWord)}
-          {c('/app/promociones', 'image', 'Promociones')}
-          {p.booking ? c('/app/citas', 'calendar', 'Agenda', p.pending) : null}
-          {c('/app/ventas', 'receipt', 'Ventas')}
-          {c('/app/cotizaciones', 'doc', 'Cotizaciones')}
-          {c('/app/corte', 'cash', 'Corte')}
+        <div className="hm-main">
+          {!p.isSuper ? big('/app/pos', 'pos', 'Punto de venta', 'main') : null}
+          {big('/app/pedidos', 'bag', 'Pedidos', 'a')}
+          {big('/app/cotizaciones', 'doc', 'Cotizaciones', 'b')}
+          {big('/app/catalogo', 'grid', p.catalogWord, 'c')}
         </div>
-        <div className="shead"><b>Tu negocio</b></div>
-        <div className="qa">
-          {q('/app/personalizar', 'palette', 'Personalizar')}
-          {q('/app/qr', 'qr', 'Código QR')}
-          {q('/app/empleados', 'users', 'Empleados')}
-          {q('/app/ticket', 'receipt', 'Diseño del ticket')}
-          {q('/app/impresora', 'printer', 'Impresora')}
-          {q('/app/ajustes', 'settings', 'Ajustes')}
+        <div className="hm-more">
+          {sm('/app/ventas', 'receipt', 'Ventas')}
+          {sm('/app/corte', 'cash', 'Corte')}
+          {p.booking ? sm('/app/citas', 'calendar', 'Agenda') : sm('/app/promociones', 'image', 'Promos')}
+          {sm('/app/ticket', 'printer', 'Ticket')}
+          {sm('/app/qr', 'qr', 'QR')}
+          {sm('/app/empleados', 'users', 'Equipo')}
+          {sm('/app/negocio', 'store', 'Negocio')}
+          {sm('/app/ajustes', 'settings', 'Ajustes')}
         </div>
-        <Link href={`/${p.slug}`} target="_blank" className="promo strip home-strip">
-          <div className="promo-t"><em>Tu página pública</em><b>{p.domain}/{p.slug}</b><p>Así la ven tus clientes. Compártela o imprime tu QR.</p></div>
-          <span className="promo-btn" style={{ marginRight: 18 }}>Ver <span><Icon name="chevR" size={13} stroke={3} /></span></span>
+        <Link href={`/${p.slug}`} target="_blank" className="hm-store">
+          <span className="hm-ic"><Icon name="store" size={20} /></span>
+          <div><b>Tienda pública</b><small>{p.domain}/{p.slug}</small></div>
+          <Icon name="chevR" size={18} />
         </Link>
       </div>
     </>
@@ -94,7 +81,7 @@ export function HomeView(p: P<typeof S.loadHome>) {
 export function NotificationsView(p: P<typeof S.loadNotifications>) {
   return (
     <>
-      <AppBar back={p.back} title="Notificaciones" sub="Avisos de la plataforma y novedades de tu negocio" />
+      <AppBar back={p.back} title="Notificaciones" />
       <div className="scroll pad narrow"><PushToggle /><NotificationList items={p.items} /></div>
     </>
   )
@@ -154,7 +141,7 @@ export function CategoriesView(p: P<typeof S.loadCategories>) {
 export function PromotionsView(p: P<typeof S.loadPromotions>) {
   return (
     <>
-      <AppBar back="/app/negocio" title="Promociones" sub="Banners en tu página pública" />
+      <AppBar back="/app/negocio" title="Promociones" />
       <div className="scroll pad narrow">
         <PromoManager businessId={p.businessId} canDelete={p.canDelete} item={p.item} promos={p.promos} products={p.products} />
       </div>
@@ -262,7 +249,7 @@ export function AccountView(p: P<typeof S.loadAccount>) {
 export function QuotesView(p: P<typeof S.loadQuotes> & { filters: [string, string][] }) {
   return (
     <>
-      <AppBar back="/app" title="Cotizaciones" sub={p.hint} />
+      <AppBar back="/app" title="Cotizaciones" />
       <div className="scroll">
         <div className="chips">{p.filters.map(([k, l]) => <Link key={k} href={`/app/cotizaciones?f=${k}`} className={`chip ${p.f === k ? 'on' : ''}`}>{l}</Link>)}</div>
         <div className="pad cards">

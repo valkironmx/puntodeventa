@@ -48,7 +48,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
     }))
     return (
       <>
-        <AppBar back={back} title="Pedidos" sub="Pedidos a futuro con su entrega y sus pagos" right={<Link className="btn sm" href="/app/pos" style={{ width: 'auto', padding: '0 14px' }}>Nuevo pedido</Link>} />
+        <AppBar back={back} title="Pedidos" right={<Link className="btn sm" href="/app/pos" style={{ width: 'auto', padding: '0 14px' }}>Nuevo pedido</Link>} />
         <div className="scroll pad">
           {tabs}
           <PreorderList rows={data} filter={f} canManage={ctx.role !== 'cashier'} counts={{ proximos: c.proximos, saldo: c.saldo }} />
@@ -60,7 +60,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   const f = sp.f ?? 'pending'
   return (
     <>
-      <AppBar back={back} title="Pedidos" sub="Solicitudes que llegan desde tu página" />
+      <AppBar back={back} title="Pedidos" />
       <div className="scroll pad">
         {tabs}
         <WebOrdersBody {...await loadWebOrders(ctx, f)} />

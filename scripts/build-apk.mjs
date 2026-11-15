@@ -1,6 +1,6 @@
 // Compila el APK de Android firmado y lo deja comprimido en dist-android/.
-// Uso: npm run android:apk            (servidor = IP de esta Mac en la red local, puerto 3006)
-//      CAP_SERVER_URL=https://tu-dominio.com npm run android:apk   (producción)
+// Uso: npm run android:apk            (servidor = https://ventasvalkirion.vercel.app)
+//      CAP_SERVER_URL=http://192.168.x.x:3006 npm run android:apk   (pruebas contra esta Mac)
 import { execFileSync, execSync } from 'node:child_process'
 import crypto from 'node:crypto'
 import fs from 'node:fs'
@@ -26,6 +26,7 @@ if (!fs.existsSync(props)) {
   console.log('Llave de firma creada en android/release.jks (respáldala junto con android/keystore.properties)')
 }
 
+process.env.CAP_SERVER_URL ??= 'https://ventasvalkirion.vercel.app'
 const server = await buildMobile()
 env.CAP_SERVER_URL = server
 console.log(`App del teléfono empaquetada. Servidor para iniciar sesión y sincronizar: ${server}`)

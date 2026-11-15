@@ -141,7 +141,7 @@ export async function boot() {
   const cfg = (await get<{ server: string; token: string | null; lastSync: string | null }>('cfg')) ?? null
   const [snap, outbox, failed, imgs] = await Promise.all([get('snap'), get<Op[]>('outbox'), get<Record<string, string>>('failed'), allImgs()])
   base = snap ?? null
-  set({ ready: true, server: cfg?.server || state.server, token: cfg?.token ?? null, lastSync: cfg?.lastSync ?? null, snap: snap ?? null, outbox: outbox ?? [], failed: failed ?? {}, imgs })
+  set({ ready: true, server: (cfg?.token && cfg.server) || state.server, token: cfg?.token ?? null, lastSync: cfg?.lastSync ?? null, snap: snap ?? null, outbox: outbox ?? [], failed: failed ?? {}, imgs })
   reapply()
   window.addEventListener('online', () => { set({ online: true }); void sync() })
   window.addEventListener('offline', () => set({ online: false }))
@@ -165,7 +165,7 @@ const isNetErr = (e: unknown) => !(e as any)?.status
 
 export async function login(server: string, email: string, password: string): Promise<string | null> {
   const s = server.trim().replace(/\/$/, '')
-  if (!/^https?:\/\/\S+$/.test(s)) return 'Escribe la dirección del servidor (https://…)'
+  if (!/^https?:\/\/\S+$/.test(s)) return 'No se pudo conectar. Revisa tu internet.'
   set({ server: s })
   try {
     const d = await api('/api/mobile/login', { method: 'POST', body: JSON.stringify({ email, password }) }, 40_000)

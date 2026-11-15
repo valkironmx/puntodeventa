@@ -16,6 +16,13 @@ import { convertQuoteAction } from './actions-sales'
 import { getRoute, getRouteKey, go, subscribeRoute } from './router'
 import { discard, getState, login, logout, subscribe, sync } from './store'
 
+// Las páginas traen fotos como "/storage/…": aquí se cambian por la copia guardada en el teléfono (o la del servidor)
+function withPhotos<T>(v: T): T {
+  if (typeof v === 'string') return (/^\/storage\//.test(v) ? storageUrl(v.slice(9)) ?? v : v) as T
+  if (!v || typeof v !== 'object') return v
+  return (Array.isArray(v) ? v.map(withPhotos) : Object.fromEntries(Object.entries(v as object).map(([k, x]) => [k, withPhotos(x)]))) as T
+}
+
 const useStore = () => useSyncExternalStore(subscribe, getState)
 const useRoute = () => { useSyncExternalStore(subscribeRoute, getRouteKey); return getRoute() }
 
@@ -36,31 +43,49 @@ function Root() {
 }
 
 /* ---------- Inicio de sesión (la única vez que se necesita internet) ---------- */
+const SIGNUP_URL = 'https://ventasvalkirion.vercel.app/registro'
 function Login() {
   const s = useStore()
-  const [server, setServer] = useState(s.server)
   const [email, setEmail] = useState('')
   const [pass, setPass] = useState('')
+  const [show, setShow] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [adv, setAdv] = useState(!s.server)
-  const submit = async () => { setBusy(true); setErr(await login(server, email, pass)); setBusy(false) }
+  const [signup, setSignup] = useState(false)
+  const submit = async () => { setBusy(true); setErr(await login(s.server, email, pass)); setBusy(false) }
   return (
     <div className="m-login">
       <div className="m-login-card">
-        <div className="m-logo"><Icon name="bag" size={30} /></div>
-        <h1>Inicia sesión</h1>
-        <p className="mut">Solo necesitas internet esta vez. Después la app funciona sin conexión y sube todo cuando vuelva la señal.</p>
-        {s.authError ? <div className="err">Tu sesión terminó. Vuelve a iniciar sesión; lo que no se ha subido se conserva.</div> : null}
+        <div className="m-logo"><Icon name="pos" size={28} /></div>
+        <h1>Hola de nuevo</h1>
+        <p className="mut">Entra con tu correo.</p>
+        {s.authError ? <div className="err">Tu sesión terminó. Entra otra vez; lo pendiente se guarda.</div> : null}
         <form onSubmit={(e) => { e.preventDefault(); void submit() }}>
-          <Field label="Correo"><input className="inp" type="email" autoComplete="username" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
-          <Field label="Contraseña"><input className="inp" type="password" autoComplete="current-password" value={pass} onChange={(e) => setPass(e.target.value)} /></Field>
-          {adv ? <Field label="Servidor" hint="La dirección de tu sistema."><input className="inp" inputMode="url" autoCapitalize="none" value={server} onChange={(e) => setServer(e.target.value)} placeholder="https://" /></Field> : null}
+          <Field label="Correo"><input className="inp" type="email" autoComplete="username" inputMode="email" autoCapitalize="none" value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
+          <Field label="Contraseña">
+            <div className="m-pass">
+              <input className="inp" type={show ? 'text' : 'password'} autoComplete="current-password" value={pass} onChange={(e) => setPass(e.target.value)} />
+              <button type="button" aria-label={show ? 'Ocultar contraseña' : 'Ver contraseña'} onClick={() => setShow(!show)}><Icon name={show ? 'eyeOff' : 'eye'} size={18} /></button>
+            </div>
+          </Field>
           {err ? <div className="err">{err}</div> : null}
           <button className="btn" disabled={busy || !email || !pass}>{busy ? 'Entrando…' : 'Entrar'}</button>
         </form>
-        {!adv ? <button type="button" className="m-link" onClick={() => setAdv(true)}>Cambiar servidor</button> : null}
+        <div className="m-or"><span>¿Aún no tienes cuenta?</span></div>
+        <button type="button" className="btn ghost m-signup" onClick={() => setSignup(true)}>Crear cuenta</button>
       </div>
+      {signup ? (
+        <div className="m-sheet-bg" onClick={() => setSignup(false)}>
+          <div className="m-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="m-sheet-ic"><Icon name="store" size={26} /></div>
+            <b>Crea tu cuenta en la web</b>
+            <p>Registra tu negocio en nuestra página y luego entra aquí con tu correo.</p>
+            <div className="m-soon">Muy pronto</div>
+            <a className="btn" href={SIGNUP_URL} target="_blank" rel="noreferrer" aria-disabled="true" onClick={(e) => e.preventDefault()}>Ir a la página</a>
+            <button type="button" className="m-link" onClick={() => setSignup(false)}>Cerrar</button>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -155,7 +180,7 @@ function View({ path, query }: { path: string; query: URLSearchParams }) {
   const snap = useStore().snap
   const pg = (snap.pages ?? {}) as Record<string, any>
   const manager = snap.user.role !== 'cashier'
-  const show = (data: any, el: (d: any) => ReactNode, title: string, back = '/app') => (data ? <>{el(data)}</> : <NoData title={title} back={back} />)
+  const show = (data: any, el: (d: any) => ReactNode, title: string, back = '/app') => (data ? <>{el(withPhotos(data))}</> : <NoData title={title} back={back} />)
   const seg = (base: string) => decodeURIComponent(path.slice(base.length))
   if (path === '/app/pos') return <PosView />
   if (path === '/app/sync') return <SyncView />
@@ -213,7 +238,7 @@ function WebOrdersView({ f }: { f: string }) {
   const d = snap.pages?.[`pedidos-web:${f}`]
   return (
     <>
-      <AppBar back={snap.user.role === 'cashier' ? '/app/pos' : '/app'} title="Pedidos" sub="Solicitudes que llegan desde tu página" />
+      <AppBar back={snap.user.role === 'cashier' ? '/app/pos' : '/app'} title="Pedidos" />
       <div className="scroll pad">
         {snap.business.mode !== 'service' ? <PedidosTabs tab="web" pending={(snap.pages?.['pedidos-web:pending'] as any)?.pending ?? 0} /> : null}
         {d ? <V.WebOrdersBody {...d} /> : <div className="empty">Se descarga al tener conexión.</div>}
@@ -250,7 +275,7 @@ function PedidosView({ filter }: { filter: string }) {
     .sort((a, b) => (f === 'proximos' || f === 'saldo' ? 1 : -1) * (new Date(a.deliveryAt).getTime() - new Date(b.deliveryAt).getTime()))
   return (
     <>
-      <AppBar back={snap.user.role === 'cashier' ? '/app/pos' : '/app'} title="Pedidos" sub="Pedidos a futuro con su entrega y sus pagos"
+      <AppBar back={snap.user.role === 'cashier' ? '/app/pos' : '/app'} title="Pedidos"
         right={<button className="btn sm" style={{ width: 'auto', padding: '0 14px' }} onClick={() => go('/app/pos')}>Nuevo pedido</button>} />
       <div className="scroll pad">
         <PedidosTabs tab="pos" pending={(snap.pages?.['pedidos-web:pending'] as any)?.pending ?? 0} />
@@ -269,7 +294,7 @@ function VentasView({ filter }: { filter: string }) {
   const rows = all.filter((s) => filter === 'todas' || (filter === 'saldo' && Number(s.balance) > 0 && s.status !== 'cancelled') || (filter === 'subir' && s.pending))
   return (
     <>
-      <AppBar title="Ventas y pagos" sub="Últimos 60 días" />
+      <AppBar title="Ventas y pagos" />
       <div className="scroll">
         <div className="chips">{F.map(([k, l]) => <a key={k} href="#" className={`chip ${filter === k ? 'on' : ''}`} onClick={(e) => { e.preventDefault(); go(`/app/ventas?f=${k}`, true) }}>{l}</a>)}</div>
         <div className="pad cards">
@@ -379,7 +404,7 @@ function SyncView() {
   const toast = useToast()
   return (
     <>
-      <AppBar title="Respaldo" sub="Tus datos viven en el teléfono; aquí se respaldan" />
+      <AppBar title="Respaldo" />
       <div className="scroll pad narrow">
         <div className="box">
           <div className="kv"><span>Estado</span><b style={{ color: s.online ? 'var(--g)' : 'var(--red)' }}>{s.online ? 'Con conexión' : 'Sin conexión'}</b></div>

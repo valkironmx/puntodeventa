@@ -60,12 +60,12 @@ export function PushToggle() {
       setState('off'); toast('Notificaciones desactivadas en este dispositivo')
     } finally { setBusy(false) }
   }
-  if (state === 'loading') return null
+  if (state === 'loading' || state === 'unsupported') return null
   const text: Record<string, [string, string]> = {
-    on: ['Notificaciones activadas', 'Este dispositivo recibe avisos aunque la app esté cerrada.'],
-    off: ['Recibe avisos en este dispositivo', 'Te llegan al teléfono las solicitudes de pedido y cita, productos agotados y avisos de la plataforma.'],
-    denied: ['Notificaciones bloqueadas', 'Las bloqueaste en este navegador. Actívalas desde los ajustes del navegador o del teléfono para este sitio.'],
-    'ios-install': ['Instala la app en tu iPhone', 'En iPhone las notificaciones funcionan con la app agregada a la pantalla de inicio: toca Compartir y luego "Agregar a inicio".'],
+    on: ['Avisos activados', 'Te llegan aunque la app esté cerrada.'],
+    off: ['Recibe avisos aquí', 'Pedidos, citas y productos agotados.'],
+    denied: ['Avisos bloqueados', 'Actívalos en los ajustes del navegador.'],
+    'ios-install': ['Agrégala a tu inicio', 'En iPhone: Compartir → "Agregar a inicio".'],
     unsupported: ['No disponible en este navegador', 'Usa Chrome, Edge, Firefox o Safari actualizado. En producción se necesita HTTPS.'],
   }
   return (

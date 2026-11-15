@@ -157,14 +157,19 @@ export function Pos({ products, cats, hasSession, rate, orderTypes, mode, cashie
         ) : <div className="ttl">{appointment ? `Cobrar cita · ${appointment.customer}` : 'Nueva venta'}</div>}
       </AppBar>
       {canPreorder || showQuote ? <div className="pos-mode-row">{modeTabs('full')}</div> : null}
-      {preorder ? <div className="pos-pre-hint pad"><Icon name="calendar" size={15} /> Pedido para otra fecha: agrega los productos y luego captura cliente, entrega y anticipo. <Link className="lk" href="/app/pedidos?t=pos">Ver pedidos</Link></div> : null}
-      {quote ? <div className="pos-pre-hint pad"><Icon name="doc" size={15} /> Cotización: agrega los productos y los datos del cliente. Después la conviertes en venta. <Link className="lk" href="/app/cotizaciones">Ver cotizaciones</Link></div> : null}
+      <div className="pos-top">
+        <label className="search"><Icon name="search" size={18} />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={searchPh} style={{ border: 0, outline: 0, flex: 1, minWidth: 0, font: 'inherit', background: 'transparent' }} />
+        </label>
+        {desktop ? null : (
+          <button type="button" className={`pos-cart ${count ? 'has' : ''}`} aria-label={count ? `Ver carrito: ${count} productos, ${centsMoney(doc.total)}` : 'Carrito vacío'}
+            onClick={() => (lines.length ? setPaying(true) : toast('Toca un producto para agregarlo'))}>
+            <span className="pos-cart-ic"><Icon name="cart" size={20} />{count ? <i key={count}>{count > 99 ? '99+' : count}</i> : null}</span>
+            {count ? <b>{centsMoney(doc.total, true)}</b> : null}
+          </button>
+        )}
+      </div>
       <div className="scroll">
-        <div className="pad">
-          <label className="search"><Icon name="search" size={18} />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={searchPh} style={{ border: 0, outline: 0, flex: 1, font: 'inherit', background: 'transparent' }} />
-          </label>
-        </div>
         <div className="chips">
           <button className={`chip ${cat === 'all' ? 'on' : ''}`} onClick={() => setCat('all')}>Todos</button>
           {cats.map((c) => <button key={c.id} className={`chip ${cat === c.id ? 'on' : ''}`} onClick={() => setCat(c.id)}>{c.name}</button>)}
@@ -185,14 +190,6 @@ export function Pos({ products, cats, hasSession, rate, orderTypes, mode, cashie
           <button type="button" className="tile free" onClick={() => setFree(true)} style={{ minHeight: 130 }}><Icon name="plus" size={24} /><b>Monto libre</b></button>
         </div>
       </div>
-
-      {desktop ? null : lines.length === 0 ? <div className="posbar empty" style={{ justifyContent: 'center' }}>Toca productos para agregarlos</div> : (
-        <div className="posbar" onClick={() => setPaying(true)} role="button">
-          <div className="ct"><Icon name="bag" size={18} /><i>{count}</i></div>
-          <div><b>{centsMoney(doc.total)}</b><small>{count} {count === 1 ? 'producto' : 'productos'}</small></div>
-          <span className="go">{preorder || quote ? 'Continuar' : 'Cobrar'} <Icon name="chevR" size={15} /></span>
-        </div>
-      )}
 
       {optFor ? <OptionSheet p={optFor} onClose={() => setOptFor(null)} onPick={(chosen) => { const p = optFor; setOptFor(null); addProduct(p, chosen) }} /> : null}
       {qtyFor ? <QtySheet info={qtyFor} onClose={() => setQtyFor(null)} onOk={(qty) => {
@@ -290,7 +287,7 @@ export function Pos({ products, cats, hasSession, rate, orderTypes, mode, cashie
       {confirmLeave ? (
         <ConfirmLeave
           title={confirmLeave.kind ? `¿Cambiar a ${KIND_TO[confirmLeave.kind]}?` : '¿Salir del punto de venta?'}
-          text={`Tienes ${KIND_LABEL[current]} en captura. Si continúas se borran los productos, descuentos y datos que escribiste.`}
+          text={`Se borrará ${KIND_LABEL[current]} que llevas.`}
           ok={confirmLeave.kind ? 'Borrar y cambiar' : 'Borrar y salir'}
           onCancel={() => setConfirmLeave(null)}
           onOk={() => { const c = confirmLeave; setConfirmLeave(null); clearAll(); if (c.kind) applyKind(c.kind); else if (c.href) router.push(c.href) }} />
